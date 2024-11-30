@@ -17,6 +17,9 @@ class AutoQEC_SA:
         pass
 
     def create_ds(self, ds_sz = 1, ds_qb = 2):
+        """
+        Create a dataset of random unitary matrices
+        """
         self.ds = []
         for _ in range(ds_sz):
             self.ds.append(random_unitary(2**ds_qb, seed=42))
@@ -27,11 +30,17 @@ class AutoQEC_SA:
         self.qc_init()
 
     def set_backend(self, perr = [1,0,0], connectivity = None):
+        """
+        Set the backend for simulation
+        """
         self.noise = perr
         # self.backend = BasicAer.get_backend('unitary_simulator')
         self.backend = AerSimulator()                    
 
     def qc_init(self, q_l2p = 3, q_syndrome = 2):
+        """
+        Create the initial quantum circuit
+        """
         for i in range(self.ds_sz):
             qc = QuantumCircuit(self.ds_qb*q_l2p+q_syndrome)
             qc.append(self.ds[i], list(range(self.ds_qb)))
@@ -41,12 +50,18 @@ class AutoQEC_SA:
         self.create_action_space()
 
     def create_action_space(self):
+        """
+        Create the action space for the simulated annealing
+        """
         self.gate_list = list(product(range(self.ds_qb*self.q_l2p+self.q_syndrome), range(self.ds_qb*self.q_l2p+self.q_syndrome))) 
         for g in self.gate_list:
             if g[0]==g[1]: 
                 self.gate_list.remove(g)
 
     def qc_encode(self, qc:QuantumCircuit) -> QuantumCircuit:
+        """
+        Encode the data qubits
+        """
         # qc.barrier()
         for i in range(self.ds_qb):
             for j in range(self.q_l2p-1):
@@ -55,6 +70,9 @@ class AutoQEC_SA:
         return qc
 
     def qc_decode(self, qc:QuantumCircuit) -> QuantumCircuit:
+        """
+        Decode the data qubits
+        """
         # qc.barrier()
         for i in range(self.ds_qb):
             for j in range(self.q_l2p-1):
@@ -64,6 +82,9 @@ class AutoQEC_SA:
         return qc
     
     def qc_noise(self, qc:QuantumCircuit) -> QuantumCircuit:
+        """
+        Add noise to the qubits
+        """
         ' Deterministic error on single qubit '
         qc.x(0)
 
@@ -85,11 +106,17 @@ class AutoQEC_SA:
         return qc
 
     def loss_fn(self, qc1, qc2):
+        """
+        Compute the loss function
+        """
         state1 = partial_trace(Statevector(qc1),list(range(self.ds_qb,self.ds_qb*self.q_l2p+self.q_syndrome)))
         state2 = partial_trace(Statevector(qc2),list(range(self.ds_qb,self.ds_qb*self.q_l2p+self.q_syndrome)))
         return (1 - state_fidelity(state1,state2))
 
     def sim_anneal(self, max_trials = 50, max_steps = 200):
+        """
+        Simulated Annealing for error correction
+        """
         self.max_trials = max_trials
         self.max_steps = max_steps
         self.result_loss = []
@@ -124,6 +151,9 @@ class AutoQEC_SA:
         # print(self.result_loss) 
         
     def plot_results(self):
+        """
+        Plot the results of the simulated annealing
+        """
         for t in range(self.max_trials):
             # plt.semilogy(self.result_loss[t],'-o')
             # plt.loglog(self.result_loss[t],'-o')
