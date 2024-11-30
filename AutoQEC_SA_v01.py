@@ -175,7 +175,7 @@ print(shortqc)
 
 plt.xlabel('Number of CNOT')
 plt.ylabel('Error')
-plt.savefig('2q_Anneal_error_correction.pdf',dpi=300)
-plt.savefig('2q_Anneal_error_correction.png',dpi=300)
+# plt.savefig('2q_Anneal_error_correction.pdf',dpi=300)
+# plt.savefig('2q_Anneal_error_correction.png',dpi=300)
 plt.show()
 
