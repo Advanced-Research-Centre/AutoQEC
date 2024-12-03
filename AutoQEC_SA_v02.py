@@ -8,15 +8,15 @@ import matplotlib.pyplot as plt
 from qiskit import transpile
 from qiskit_aer import AerSimulator
 from tqdm import tqdm
+import pickle
 
 class AutoQEC_SA:
     
     def __init__(self):
-        self.create_ds()
         self.set_backend()
         pass
 
-    def create_ds(self, ds_sz = 1, ds_qb = 2):
+    def create_ds(self, ds_sz = 1, ds_qb = 1):
         """
         Create a dataset of random unitary matrices
         """
@@ -57,12 +57,16 @@ class AutoQEC_SA:
         for g in self.gate_list:
             if g[0]==g[1]: 
                 self.gate_list.remove(g)
+        # print(len(self.gate_list))
+        # exit()
 
     def qc_encode(self, qc:QuantumCircuit) -> QuantumCircuit:
         """
         Encode the data qubits
         """
         # qc.barrier()
+        for i in range(self.q_syndrome):
+            qc.h(self.ds_qb*self.q_l2p+i)
         for i in range(self.ds_qb):
             for j in range(self.q_l2p-1):
                 qc.cx(i,self.ds_qb+i*(self.q_l2p-1)+j)
@@ -109,8 +113,11 @@ class AutoQEC_SA:
         """
         Compute the loss function
         """
-        state1 = partial_trace(Statevector(qc1),list(range(self.ds_qb,self.ds_qb*self.q_l2p+self.q_syndrome)))
-        state2 = partial_trace(Statevector(qc2),list(range(self.ds_qb,self.ds_qb*self.q_l2p+self.q_syndrome)))
+        trace_qb = list(range(self.ds_qb,self.ds_qb*self.q_l2p+self.q_syndrome))
+        # trace_qb = [0,1,2]
+        
+        state1 = partial_trace(Statevector(qc1),trace_qb)
+        state2 = partial_trace(Statevector(qc2),trace_qb)
         return (1 - state_fidelity(state1,state2))
 
     def sim_anneal(self, max_trials = 50, max_steps = 200):
@@ -134,34 +141,34 @@ class AutoQEC_SA:
                     qc_sa.compose(qc_corr, inplace=True)
                     qc_sa = self.qc_decode(qc_sa)
                     tot_loss += self.loss_fn(qc, qc_sa)
-                if(prev_tot_loss <= 1e-10):
+                if(tot_loss <= 10**-5):                   
                     self.result_qc.append(qc_corr)
+                    self.result_loss[t].append(tot_loss)
                     break 
                 # self.result_loss[t].append(prev_tot_loss)
                 self.result_loss[t].append(tot_loss)
-                T = 1 - (k+1)/max_steps
+                T = 1 - (k+1)/max_steps 
                 if T == 0:
                     break
                 if random() < np.exp(-(tot_loss - prev_tot_loss) / T):
                     action = self.gate_list[randint(0,len(self.gate_list)-1)]   #randomly choose the gate from gate_list
                     qc_corr.cx(action[0],action[1])
-                    qc_corr = transpile(deepcopy(qc_corr),self.backend) # Transpile the circuit to optimize
+                    # qc_corr = transpile(deepcopy(qc_corr),self.backend) # Transpile the circuit to optimize
                 if tot_loss < prev_tot_loss:
                     prev_tot_loss = tot_loss
-        # print(self.result_loss) 
         
     def plot_results(self):
         """
         Plot the results of the simulated annealing
         """
         for t in range(self.max_trials):
-            # plt.semilogy(self.result_loss[t],'-o')
+            plt.semilogy(self.result_loss[t],'-o')
             # plt.loglog(self.result_loss[t],'-o')
-            plt.plot(self.result_loss[t],'-o')
+            # plt.plot(self.result_loss[t],'-o')
         # plt.xscale('log')
         plt.xlabel('Simulated Annealing Steps')
         plt.ylabel('Loss')
-        # plt.savefig('2q_Anneal_error_correction.pdf',dpi=300)
+        plt.savefig('sa_plot_1_1_2000_500_001.pdf',dpi=300)
         # plt.savefig('2q_Anneal_error_correction.png',dpi=300)
         plt.show()
 
@@ -169,14 +176,19 @@ class AutoQEC_SA:
 if __name__ == "__main__":
 
     aqec = AutoQEC_SA()
+    aqec.create_ds(1,1)
     # print(aqec.ds)
     # print(aqec.ds_qc[0])
     # print(aqec.ds_s_in)
 
-    aqec.sim_anneal()
+    aqec.sim_anneal(2000,500)
     
     good_circ = aqec.result_qc
     print("Number of good circuits: ",len(good_circ))
+
+    with open("circ_data_1_1_2000_500_001.pkl", 'wb') as f:
+        pickle.dump(good_circ, f, pickle.HIGHEST_PROTOCOL)
+
     # for c in good_circ:
     #     print(c)
 

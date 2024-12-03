@@ -32,7 +32,7 @@ for anealit in tqdm(range(0,50)): # for each annealing trial
 
 
 
-    perr = [1, 0.8, 0.0] # Probability of occuring [X-error, Y-error, Z-error]
+    perr = [0.8, 0.0, 0.0] # Probability of occuring [X-error, Y-error, Z-error]
     #number of qubits
     num = 8
 
@@ -63,9 +63,9 @@ for anealit in tqdm(range(0,50)): # for each annealing trial
 
     qc.barrier()
 
-    #Error induction
-    # rand_qubit = np.random.randint(0,6)
-    # qc.x(q[rand_qubit])
+    # Error induction
+    rand_qubit = np.random.randint(0,6)
+    qc.x(q[rand_qubit])
     # px,py,pz = np.random.rand(),np.random.rand(),np.random.rand()
     # rand_qubit = np.random.randint(0,6)
     # if px < perr[0]:
